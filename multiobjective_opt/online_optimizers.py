@@ -5,9 +5,10 @@ This is a file with online optimizers
 
 from abc import abstractmethod
 from typing import List
-from tqdm import tqdm
-
+from collections import defaultdict
 from attr import dataclass
+
+from tqdm import tqdm
 import numpy as np
 import jax.numpy as jnp
 from scipy.optimize import Bounds, minimize
@@ -168,3 +169,70 @@ class RFTL_structured(RFTL):
         w_sum /= self.T
         return OptmizerReturn(x, losses, w_sum)
 
+
+class BanditGradDescent(BaseOnlineOptimizer):
+    def __init__(self, vector_function: dict,
+                lr_scalers,
+                bound_scalers,
+                projection_function = lambda x: x
+                ):
+        """
+        params:
+
+            lr_scaler: learning rate scaler D/G
+            while running use D_G/sqrt(t)
+        """
+
+        super().__init__()
+
+        self.f = vector_function
+        self.lr_scalers = lr_scalers
+        self.bound_scalers = bound_scalers
+
+        self.projection_function = projection_function
+
+    def run(self, x0: dict, T):
+        n_arms = len(self.f)
+        losses = defaultdict(list)
+        losses_list = []
+        pulls = {i: 1 for i in range(n_arms)}
+        x_s = x0 #для каждой ручки свои параметры
+        x_sums = {i: x.copy() for i, x in x_s.items()}
+
+        values = {i: self.f[i](x_sums[i]) for i in range(n_arms)}
+        G = 1
+
+        for t in range(T):
+            # select arm
+            ucbs = [values[i] - self.bound_scalers[i] * G * (1/pulls[i]**0.5)
+                             for i in range(n_arms)]
+            arm = np.argmin(ucbs)
+
+            arm_t = pulls[arm]
+            f = self.f[arm]
+            f_time = pulls[arm]
+            x = x_s[arm]
+
+            # получили новую точку
+            grad_t = f.grad(x)
+            G = max(G, np.linalg.norm(grad_t))
+            eta_t = self.lr_scalers[arm]/(f_time**0.5)
+            x = x - eta_t * grad_t
+            x = self.projection_function(x)
+            # обновилли точки
+            x_sums[arm] += x
+            x_s[arm] = x
+            
+            pulls[arm] += 1
+
+            x_compute = x_sums[arm]/pulls[arm] # потому что сходимость в среднем
+            f_val = f(x_compute)
+            loss_t = f_val
+            losses[arm].append(loss_t)
+            losses_list.append(loss_t)
+            values[arm] = f_val
+        
+        print(G)
+        x = {i: x_sums[i]/pulls[i] for i in range(n_arms)}
+
+        return losses, losses_list, x

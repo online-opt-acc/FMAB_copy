@@ -35,7 +35,12 @@ class ModularFunc:
 
         self.bias = np.random.randn() * 2
         self.bias2 = np.abs(np.random.randn()) * 5
-        self.weight = np.random.randn(dim)*2
+
+        norms = np.random.randn(dim)
+        norms /= np.linalg.norm(norms)
+        norms = norms * (np.random.rand(dim) > 0.3)
+        self.weight = np.random.randn(dim) #+ norms * 2
+        # self.weight /= np.linalg.norm(self.weight)
 
     def __call__(self, x):
         assert len(x) == self.dim
