@@ -17,7 +17,54 @@ matplotlib = "^3.10.0"
 ipython = "^8.31.0"
 optax = "^0.2.4"
 tqdm = "^4.67.1"
+torch = "^2.5.1"
+torchvision = "^0.20.1"
+tabulate = "^0.9.0"
+joblib = "^1.4.2"
+pre-commit = "^4.1.0"
 
+
+
+[tool.black]
+line-length = 90
+target-version = ["py311"]
+
+[tool.isort]
+src_paths = ["ds_project"]
+profile = "black"
+line_length = 90
+lines_after_imports = 2
+
+[tool.flake8]
+max-line-length = 90
+ignore = ['E203', 'E501', 'W503', 'B950', 'B905']
+exclude = ["*.ipynb"]
+max-complexity = 12
+select = ['B', 'C', 'E', 'F', 'W', 'B9']
+per-file-ignores = [
+    # for easier imports to __init__ without __all__
+    '**/__init__.py: F401',
+    # file to define custom types
+    'types.py: F401',
+]
+count = true
+
+
+[tool.nbqa.config]
+black = "pyproject.toml"
+isort = "pyproject.toml"
+
+[tool.nbqa.addopts]
+flake8 = [
+    "--extend-ignore=E203",
+]
+
+[tool.nbqa.exclude]
+flake8 = "tester.ipynb"
+
+[tool.nbqa.mutate]
+black = 1
+isort = 1
 
 [build-system]
 requires = ["poetry-core"]
