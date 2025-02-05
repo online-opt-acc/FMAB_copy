@@ -1101,6 +1101,26 @@ files = [
 ]
 
 [[package]]
+name = "nsopy"
+version = "1.52"
+description = "Non-smooth optimization for Python"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "nsopy-1.52-py3-none-any.whl", hash = "sha256:1df62a8ffc0ea4fbed910c9a517b5dd87f9508d7d579a7950e25bb2a6de43bfd"},
+    {file = "nsopy-1.52.tar.gz", hash = "sha256:8f41bdebb40aeed4ae702ed1bda352d7152dc88cb7cc005cc0e52e4eb4951dc4"},
+]
+
+[package.dependencies]
+colorama = ">=0.3.7"
+numpy = ">=1.11.2"
+pandas = ">=0.19.0"
+python-dateutil = ">=2.5.3"
+pytz = ">=2016.7"
+six = ">=1.10.0"
+
+[[package]]
 name = "numpy"
 version = "2.2.2"
 description = "Fundamental package for array computing in Python"
@@ -2365,4 +2385,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "90ba3f7453d31b1d70316031cc14b09b0901ef42e6a7edc8c68088e9077de89a"
+content-hash = "4f68273be7bba8a6ab2aa30e9291f2e9aa29dad9140b205771ae22541e13eac8"
