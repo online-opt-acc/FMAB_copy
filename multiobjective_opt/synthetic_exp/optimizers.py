@@ -88,8 +88,8 @@ class SGMTripleAveraging:
         gamma_t_plus_1 = self.gamma * np.sqrt(self.iteration_number + 2)
         tau_t = float(1) / float(self.iteration_number + 2)
 
-        lambda_k_plus = float(1.0) / float(gamma_t) * self.s_k  # old
-        # lambda_k_plus = float(self.A_t)/float(gamma_t) * self.s_k #fixed
+        # lambda_k_plus = float(1.0) / float(gamma_t) * self.s_k  # old
+        lambda_k_plus = float(self.A_t) / float(gamma_t) * self.s_k  # fixed
 
         lambda_k_plus = self.projection_function(lambda_k_plus)
 
@@ -226,7 +226,7 @@ class StochasticAGD:
         # step 3
         self.x_up = (1 - alpha_t) * self.x_up + alpha_t * self.x
 
-        val = self.oracle(self.x)
+        val = self.oracle(self.x_up)
         return val
 
     def bounds(self):

@@ -13,7 +13,13 @@ class MABReturn:
     selection_history: List[int]
 
     def draw_all_steps(
-        self, arms, colors=None, with_intervals=True, xlim=None, ylim=None
+        self,
+        arms,
+        colors=None,
+        with_intervals=True,
+        xlim=None,
+        ylim=None,
+        tight_layout=True,
     ):
         fig, ax = plt.subplots()
         if colors is None:
@@ -42,9 +48,11 @@ class MABReturn:
         ax.set_ylabel(r"$f(x)$")
         plt.legend()
 
+        if tight_layout:
+            fig.tight_layout()
         return fig
 
-    def draw_cumulative_regret(self, min_val=0):
+    def draw_cumulative_regret(self, min_val=0, tight_layout=True):
         rew_hist = np.array(self.reward_history)
         cumulative_regret = np.cumsum(rew_hist - min_val)
 
@@ -52,6 +60,8 @@ class MABReturn:
         ax.plot(cumulative_regret)
         ax.set_xlabel(r"$\#$ Iteration")
         ax.set_ylabel(r"$f_{i_t}(x_{i_t}) - f^*$")
+        if tight_layout:
+            fig.tight_layout()
         return fig
 
 
