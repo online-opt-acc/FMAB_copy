@@ -1,12 +1,12 @@
-from experiments.models.mnist_models import (
+from multiobjective_opt.neural_net.models.mnist_models import (
     MLP,
     Conv1LayerModel,
     Conv2LayerModel,
     GoodMNISTModel,
     SimpleLinearModel,
 )
-from experiments.utils.dataset_prepare import load_mnist
-from experiments.utils.funcs import train_model
+from multiobjective_opt.neural_net.utils.dataset_prepare import load_mnist
+from multiobjective_opt.neural_net.utils.funcs import train_model
 from tqdm import tqdm
 
 

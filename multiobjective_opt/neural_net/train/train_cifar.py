@@ -1,6 +1,7 @@
 import pickle
 
-from experiments.models.cifar_models import (
+from joblib import Parallel, delayed
+from multiobjective_opt.neural_net.models.cifar_models import (
     CNN,
     MLP,
     CNNBatchNorm,
@@ -9,9 +10,8 @@ from experiments.models.cifar_models import (
     ResNet18,
     SimpleLinearModel,
 )
-from experiments.utils.dataset_prepare import CIFAR10Handler
-from experiments.utils.funcs import train_model
-from joblib import Parallel, delayed
+from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
+from multiobjective_opt.neural_net.utils.funcs import train_model
 from tabulate import tabulate
 
 

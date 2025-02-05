@@ -9,12 +9,14 @@
 """
 
 from dataclasses import dataclass, field
+from time import time
 from typing import Dict, List, Literal, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
 from .dataset_prepare import ClassificationDatasetsHandlerBase
@@ -66,22 +68,66 @@ def eval_model(model, test_loader, device):
     return {"accuracy": correct / total, "loss": loss / total}
 
 
+class EarlyStopper:
+    def __init__(self, patience: int, min_delta=0):
+        """
+        saves last patiense фсс
+        """
+        self.patience = patience
+        self.min_delta = min_delta
+        self.best_score = None
+        self.counter = 0
+
+    def __call__(self, score) -> None:
+        if self.best_score is None:
+            self.best_score = score
+        elif score <= self.best_score + self.min_delta:
+            if score > self.best_score:
+                self.best_score = score
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        else:
+            self.best_score = score
+            self.counter = 0
+        return False
+
+
 def train_model(
-    model, train_loader, test_loader, epochs=10, learning_rate=0.001, verbose=False
+    model, train_loader, test_loader, epochs=10, learning_rate=0.01, verbose=False
 ):
+    early_stopper = EarlyStopper(10, 0.1)  # акураси меняется не более чем на о.1 10 шагов
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=0.05,
+        patience=2,
+        threshold=0.0001,
+        threshold_mode="rel",
+        cooldown=0,
+        min_lr=0,
+        eps=1e-08,
+        verbose=True,
+    )
 
     return_res = {}
+
+    start_time = time()
+    epoch = 0
     for _ in tqdm(
         range(epochs),
         desc=f"model epochs: {model.__class__.__name__}",
         position=1,
         leave=False,
     ):
+        epoch += 1
         running_loss = train_epoch(model, criterion, optimizer, train_loader, device)
+        scheduler.step((running_loss / len(train_loader)))
         eval_res = eval_model(model, test_loader, device)
 
         return_res["running_loss"] = running_loss / len(train_loader)
@@ -91,11 +137,19 @@ def train_model(
             print(f"epoch_loss: {running_loss}")
             print(f"Test Accuracy: {100 * eval_res['accuracy']:.2f}%")
 
+        stop = early_stopper(eval_res["accuracy"])
+        if stop:
+            break
+
+    end_time = time - start_time()
+    return_res["runtime"] = end_time
+    return_res["runned_epochs"] = epoch
     return return_res
 
 
 def estimate_model_coeff(
     model_fabric,
+    model_params_kwargs,
     input_shape,
     num_classes,
     loss_function=None,
@@ -119,7 +173,7 @@ def estimate_model_coeff(
     D, G = 0, 0
 
     for _ in range(10):
-        model = model_fabric().to(device)
+        model = model_fabric(**model_params_kwargs).to(device)
         params_sum = 0.0
         with torch.no_grad():
             for param in model.parameters():
@@ -148,6 +202,10 @@ def estimate_model_coeff(
 
             grad_norm = grad_norm**0.5
             G = max(G, grad_norm)
+    print(
+        D,
+        G,
+    )
     return D * G
 
 
@@ -174,6 +232,7 @@ class TrainHyperparameters:
 @dataclass
 class ModelArm:
     model: nn.Module
+    model_params_kwargs: Dict
     data_loader: ClassificationDatasetsHandlerBase
     coeff: Union[float, None] = None
     eval_criterion: Literal["accuracy", "loss"] = "loss"
@@ -200,9 +259,10 @@ class ModelArm:
         )
 
         if self.coeff is None:
-            self.coeff = self.coeff_estimate()
+            self.coeff = self.coeff_estimate(self.model_params_kwargs)
+        print(self.coeff)
 
-    def coeff_estimate(self):
+    def coeff_estimate(self, model_params_kwargs):
         """
         estimate coeff if coeff is not given
         """
@@ -213,6 +273,7 @@ class ModelArm:
 
         return estimate_model_coeff(
             self.model.__class__,
+            model_params_kwargs,
             inp_shape,
             num_classes,
             self.criterion,
@@ -261,6 +322,7 @@ class UCB_nets:
     def __init__(
         self,
         models: List[nn.Module],
+        model_params: List[Dict],
         data_loader: ClassificationDatasetsHandlerBase,
         coeffs: List[float] = None,
         eval_criterion: Literal["accuracy", "loss"] = "loss",
@@ -276,12 +338,13 @@ class UCB_nets:
         self.model_arms: List[ModelArm] = [
             ModelArm(
                 model,
+                m_params,
                 data_loader,
                 coeff,
                 eval_criterion=eval_criterion,
                 train_hyperparams=train_hyperparams,
             )
-            for model, coeff in zip(models, coeffs)
+            for model, coeff, m_params in zip(models, coeffs, model_params)
         ]
 
     def ucb_train_models(self, sum_epochs=10, verbose=False):

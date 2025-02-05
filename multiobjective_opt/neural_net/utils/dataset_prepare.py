@@ -31,9 +31,10 @@ class LoaderCycleHandler:
 
 
 class ClassificationDatasetsHandlerBase(ABC):
-    def __init__(self, cycled=False, iterator_steps=None):
+    def __init__(self, cycled=False, iterator_steps=None, root="./data"):
         self.cycled = cycled
         self.iterator_steps = iterator_steps
+        self.root = root
 
     @property
     @abstractmethod
@@ -88,10 +89,10 @@ class MNISTHandler(ClassificationDatasetsHandlerBase):
 
         # load datasets
         train_dataset = datasets.MNIST(
-            root="./data", train=True, download=True, transform=transform
+            root=self.root, train=True, download=True, transform=transform
         )
         test_dataset = datasets.MNIST(
-            root="./data", train=False, download=True, transform=transform
+            root=self.root, train=False, download=True, transform=transform
         )
 
         # make_dataloaders
@@ -122,10 +123,10 @@ class CIFAR10Handler(ClassificationDatasetsHandlerBase):
 
         # load_dataset
         train_dataset = datasets.CIFAR10(
-            root="./data", train=True, download=True, transform=transform
+            root=self.root, train=True, download=True, transform=transform
         )
         test_dataset = datasets.CIFAR10(
-            root="./data", train=False, download=True, transform=transform
+            root=self.root, train=False, download=True, transform=transform
         )
 
         # make_dataloaders

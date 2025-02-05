@@ -1,31 +1,32 @@
 import pickle
 
-from experiments.models.cifar_models import MLP  # ResNet18,
-from experiments.models.cifar_models import (
+from multiobjective_opt.neural_net.models.cifar_models import MLP  # ResNet18,
+from multiobjective_opt.neural_net.models.cifar_models import (
     CNN,
     CNNBatchNorm,
     CNNDropout,
     DeepCNN,
     SimpleLinearModel,
 )
-from experiments.utils import funcs
-from experiments.utils.dataset_prepare import CIFAR10Handler
+from multiobjective_opt.neural_net.utils import funcs
+from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
 from tabulate import tabulate
 
 
-def main(num_pulls=100, dataloader_cycled=True, dataloader_iters=100):
+def main(models=None, num_pulls=100, dataloader_cycled=True, dataloader_iters=100):
     # loss_maximum = 40  # for cutting model coefficient
     dataloader_cycled = True
 
-    models = {
-        "SimpleLinearModel": SimpleLinearModel,
-        "FullyConnectedModel": MLP,
-        "Conv2LayerModel": CNN,
-        "Conv3LayerModel": DeepCNN,
-        "ConvDropout": CNNDropout,
-        "ConvBatchNorm": CNNBatchNorm,
-        # "ResNet": ResNet18
-    }
+    if models is None:
+        models = {
+            "SimpleLinearModel": SimpleLinearModel,
+            "FullyConnectedModel": MLP,
+            "Conv2LayerModel": CNN,
+            "Conv3LayerModel": DeepCNN,
+            "ConvDropout": CNNDropout,
+            "ConvBatchNorm": CNNBatchNorm,
+            # "ResNet": ResNet18
+        }
 
     models_list = []
     coeffs_list = []
