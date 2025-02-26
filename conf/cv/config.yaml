@@ -1,0 +1,25 @@
+paths:
+  exp_savepath: ./exp_results/cv
+  model_savepath: None
+  datasets_path: ./data
+
+experiment:
+  name: cifar10_simple_min_long_fixed
+  number: range(0,20)
+  iterator: ${hydra:job.num}
+  mab_params:
+    num_pulls: 150
+    dataloader_cycled: True
+    dataloader_iters: 25
+
+    train_hyperparams:
+        batch_size: 128
+        lr: 1e-3
+        device: "cuda:2"
+
+  full_train_params:
+      epochs: 100
+      batch_size: 512
+
+defaults:
+  - dataset: mnist

@@ -11,15 +11,21 @@
 from dataclasses import dataclass, field
 from time import time
 from typing import Dict, List, Literal, Union
+import mlflow
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
-from .dataset_prepare import ClassificationDatasetsHandlerBase
+from multiobjective_opt.neural_net.utils.dataset_prepare import (
+            ClassificationDatasetsHandlerBase, 
+            LoaderCycleHandler
+        )
+
 
 
 def train_epoch(model, criterion, optimizer, train_loader, device, max_iter=None):
@@ -94,11 +100,12 @@ class EarlyStopper:
 
 
 def train_model(
-    model, train_loader, test_loader, epochs=10, learning_rate=0.01, verbose=False
+    model, train_loader, test_loader, epochs=10, learning_rate=0.001, verbose=False, device = None,
+    early_stop_epochs = 10, early_stop_delta = 0.01, *args, **kwargs,
 ):
-    early_stopper = EarlyStopper(10, 0.1)  # акураси меняется не более чем на о.1 10 шагов
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    early_stopper = EarlyStopper(early_stop_epochs, early_stop_delta)  # акураси меняется не более чем на о.1 10 шагов
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -112,7 +119,6 @@ def train_model(
         cooldown=0,
         min_lr=0,
         eps=1e-08,
-        verbose=True,
     )
 
     return_res = {}
@@ -130,6 +136,7 @@ def train_model(
         scheduler.step((running_loss / len(train_loader)))
         eval_res = eval_model(model, test_loader, device)
 
+        mlflow.log_metrics(eval_res, step=epoch)
         return_res["running_loss"] = running_loss / len(train_loader)
         return_res.update(eval_res)
 
@@ -141,7 +148,7 @@ def train_model(
         if stop:
             break
 
-    end_time = time - start_time()
+    end_time = time() - start_time
     return_res["runtime"] = end_time
     return_res["runned_epochs"] = epoch
     return return_res
@@ -233,7 +240,8 @@ class TrainHyperparameters:
 class ModelArm:
     model: nn.Module
     model_params_kwargs: Dict
-    data_loader: ClassificationDatasetsHandlerBase
+    train_loader: LoaderCycleHandler
+    test_loader: Dataset
     coeff: Union[float, None] = None
     eval_criterion: Literal["accuracy", "loss"] = "loss"
     train_hyperparams: TrainHyperparameters = field(
@@ -248,8 +256,16 @@ class ModelArm:
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.train_hyperparams.lr)
 
-        self.train_loader, self.test_loader = self.data_loader.load_dataset(
-            self.train_hyperparams.batch_size
+        self.scheduler = ReduceLROnPlateau(
+            self.optimizer,
+            mode="min",
+            factor=0.05,
+            patience=2,
+            threshold=0.0001,
+            threshold_mode="rel",
+            cooldown=0,
+            min_lr=0,
+            eps=1e-08,
         )
 
         self.epoch_length = self.train_loader.iterator_steps
@@ -258,27 +274,33 @@ class ModelArm:
             model_name=self.model.__class__.__name__, eval_criterion=self.eval_criterion
         )
 
+        self.min_val = float("inf")
+
         if self.coeff is None:
             self.coeff = self.coeff_estimate(self.model_params_kwargs)
         print(self.coeff)
+
+    def set_coeff(self, coeff_val):
+        self.coeff = coeff_val
 
     def coeff_estimate(self, model_params_kwargs):
         """
         estimate coeff if coeff is not given
         """
-        batch_size = self.train_hyperparams.batch_size
-        inp_shape = self.data_loader.item_shape
-        num_classes = self.data_loader.num_classes
-        inp_shape = (batch_size, *inp_shape)
+        raise NotImplementedError()
+        # batch_size = self.train_hyperparams.batch_size
+        # inp_shape = self.train_loader.item_shape
+        # num_classes = self.train_loader.num_classes
+        # inp_shape = (batch_size, *inp_shape)
 
-        return estimate_model_coeff(
-            self.model.__class__,
-            model_params_kwargs,
-            inp_shape,
-            num_classes,
-            self.criterion,
-            self.train_hyperparams.device,
-        )
+        # return estimate_model_coeff(
+        #     self.model.__class__,
+        #     model_params_kwargs,
+        #     inp_shape,
+        #     num_classes,
+        #     self.criterion,
+        #     self.train_hyperparams.device,
+        # )
 
     def pull_epoch(self):
         """
@@ -292,22 +314,29 @@ class ModelArm:
             data_for_epoch,
             device=self.train_hyperparams.device,
         )
+        self.scheduler.step(epoch_loss/ self.epoch_length)
 
         self.statistics.train_losses.append(epoch_loss)
         self.statistics.train_steps += self.epoch_length
         self.statistics.num_pulls += 1
 
-    def eval_arm(self):
+    def eval_arm(self, with_min = True):
         """
         evaluate arm to get its function confidence_bound
         """
         eval_res = eval_model(self.model, self.test_loader, self.train_hyperparams.device)
         res_mean = eval_res[self.eval_criterion]
 
-        ucb_val = res_mean - self.coeff / (self.statistics.train_steps**0.5)
+        conf_interval = 1. / ((self.statistics.num_pulls)**0.5)
+        if with_min:
+            # тогда используем лучший результат за все время для построения лосса
+            self.min_val = min(self.min_val, res_mean)
+            ucb_val = self.min_val - self.coeff * conf_interval
+        else:
+            ucb_val = res_mean - self.coeff * conf_interval
 
         self.statistics.eval_results.append(eval_res)
-        return {self.eval_criterion: res_mean, "ucb_val": ucb_val}
+        return {**eval_res, "ucb_val": ucb_val, "conf_interval" : conf_interval}
 
     def init_arm(self):
         """
@@ -316,6 +345,7 @@ class ModelArm:
         for example epoch with lr=0 for statistics computation
         """
         self.pull_epoch()
+
 
 
 class UCB_nets:
@@ -328,46 +358,67 @@ class UCB_nets:
         eval_criterion: Literal["accuracy", "loss"] = "loss",
         train_hyperparams: TrainHyperparameters = None,
     ):
-        # TODO: добавить оценщик коэффициентов
+        #TODO: добавить оценщик коэффициентов
         assert coeffs is not None, "Coefficietn evaluator is not implemented yet"
 
         if train_hyperparams is None:
             train_hyperparams = TrainHyperparameters()
-
         self.eval_criterion = eval_criterion
+
+        train_loader, test_loader = data_loader.load_dataset(train_hyperparams.batch_size)
         self.model_arms: List[ModelArm] = [
             ModelArm(
-                model,
-                m_params,
-                data_loader,
-                coeff,
+                model=model,
+                model_params_kwargs=m_params,
+                train_loader=train_loader,
+                test_loader=test_loader,
+                coeff=coeff,
                 eval_criterion=eval_criterion,
                 train_hyperparams=train_hyperparams,
+
             )
             for model, coeff, m_params in zip(models, coeffs, model_params)
         ]
 
-    def ucb_train_models(self, sum_epochs=10, verbose=False):
+    def ucb_train_models(self, sum_epochs=10, verbose=False,
+                        set_params_from_pull = True):
         n_arms = len(self.model_arms)
 
+        
         losses = []
+        arm_eval_hist = []
+        start_time = time()
 
-        for arm in tqdm(self.model_arms, desc="init steps"):
+        arm_ucb_values = np.zeros(len(self.model_arms))
+
+        for i in tqdm(range(len(self.model_arms)), desc="Init eval"):
+            arm = self.model_arms[i]
+            
             arm.init_arm()
+            arm_eval = arm.eval_arm()
 
-        arm_ucb_values = np.array(
-            [arm.eval_arm()["ucb_val"] for arm in tqdm(self.model_arms, desc="Init eval")]
-        )
+            if set_params_from_pull:
+                new_coeff = 3 * arm_eval[self.eval_criterion]
+                arm.set_coeff(new_coeff)
+                arm_ucb_values[i] = arm_eval[self.eval_criterion] - new_coeff * arm_eval["conf_interval"]
+            else:
+                arm_ucb_values[i] = arm_eval["ucb_val"]
+
+            # arm_eval_hist.append((i,(time() - start_time), arm_eval))
+            arm_eval_hist.append({"arm":i, "duration": time() - start_time, "pull_res":arm_eval})
+
+
 
         remind_pulls = sum_epochs - n_arms
         for _ in tqdm(range(remind_pulls), desc="Total pulls: "):
-            arm_to_pull = np.argmin(arm_ucb_values)
+            arm_to_pull = int(np.argmin(arm_ucb_values))
             arm = self.model_arms[arm_to_pull]
             arm.pull_epoch()
 
             arm_eval_res = arm.eval_arm()
+            arm_eval_hist.append({"arm":arm_to_pull, "duration": time() - start_time, "pull_res":arm_eval_res})
 
             arm_ucb_values[arm_to_pull] = arm_eval_res["ucb_val"]
             losses.append(arm_eval_res[self.eval_criterion])
 
-        return self.model_arms, losses
+        return self.model_arms, losses, arm_eval_hist

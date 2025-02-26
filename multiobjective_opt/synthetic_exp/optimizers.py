@@ -72,7 +72,7 @@ class SGMTripleAveraging:
         self.parameter = gamma
 
     def step(self):
-        self.x_k, self.f_k, self.diff_d_k = (
+        self.x_k, self.f_k, diff_d_k = (
             self.lambda_k,
             self.oracle(self.lambda_k),
             self.oracle.grad(self.lambda_k),
@@ -83,7 +83,7 @@ class SGMTripleAveraging:
         # step 1
         self.A_t = self.oracle_calls + 1
 
-        self.s_k += self.diff_d_k
+        self.s_k += diff_d_k
         gamma_t = self.gamma * np.sqrt(self.iteration_number + 1)
         gamma_t_plus_1 = self.gamma * np.sqrt(self.iteration_number + 2)
         tau_t = float(1) / float(self.iteration_number + 2)

@@ -3,6 +3,7 @@ from itertools import cycle
 
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+import torchvision
 
 
 class LoaderCycleHandler:
@@ -147,3 +148,59 @@ class CIFAR10Handler(ClassificationDatasetsHandlerBase):
         #     "truck",
         # )
         return train_loader, test_loader  # , classes
+
+
+class CIFAR100Handler(ClassificationDatasetsHandlerBase):
+    @property
+    def item_shape(self):
+        return (3, 32, 32)
+    @property
+    def num_classes(
+        self,
+    ):
+        return 100
+    
+    def _load_dataset(self, batch_size=128):
+        # Define data preprocessing and augmentation
+        transform_train = transforms.Compose([
+                transforms.RandomHorizontalFlip(),  # Randomly flip images horizontally
+                transforms.RandomCrop(32, padding=4),  # Randomly crop images
+                transforms.ToTensor(),  # Convert images to PyTorch tensors
+                transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))  # Normalize with CIFAR-100 mean and std
+            ])
+
+        transform_test = transforms.Compose([
+                transforms.ToTensor(),  # Convert images to PyTorch tensors
+                transforms.Normalize((0.5071, 0.4867, 0.4408), (0.2675, 0.2565, 0.2761))  # Normalize with CIFAR-100 mean and std
+            ])
+
+        # Load CIFAR-100 dataset
+        train_dataset = torchvision.datasets.CIFAR100(
+                root=self.root,  # Path to store the dataset
+                train=True,  # Load training data
+                download=True,  # Download if not already present
+                transform=transform_train  # Apply training transformations
+            )
+
+        test_dataset = torchvision.datasets.CIFAR100(
+                root='./data',  # Path to store the dataset
+                train=False,  # Load test data
+                download=True,  # Download if not already present
+                transform=transform_test  # Apply test transformations
+            )
+
+        # Create DataLoader objects
+        train_loader = DataLoader(
+                train_dataset,  # Training dataset
+                batch_size=batch_size,  # Batch size
+                shuffle=True,  # Shuffle data for training
+                num_workers=2  # Number of subprocesses for data loading
+            )
+
+        test_loader = DataLoader(
+                test_dataset,  # Test dataset
+                batch_size=batch_size,  # Batch size
+                shuffle=False,  # No need to shuffle test data
+                num_workers=2  # Number of subprocesses for data loading
+            )
+        return train_loader, test_loader

@@ -3,8 +3,15 @@ from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
+from multiobjective_opt.utils import get_fig_set_style
 
-
+LINESTYLES = [
+    ("d", "dashdot"),
+    ("d", "dotted"),
+    ("d", "solid"),
+    ("d", "dashed"),
+    ("dashed", (0, (5, 5))),
+]
 @dataclass
 class MABReturn:
     values_history: List[List[float]]
@@ -20,17 +27,22 @@ class MABReturn:
         xlim=None,
         ylim=None,
         tight_layout=True,
+        linestyles = None,
     ):
-        fig, ax = plt.subplots()
+        fig, ax, _ = get_fig_set_style(len(arms))
         if colors is None:
             colors = ["b", "g", "r", "black"]
+        if linestyles is None:
+            linestyles = LINESTYLES
+
         assert len(colors) >= len(arms)
-        for arm, p_h, c_b, color in zip(
-            arms, self.values_history, self.bounds_history, colors
+        assert len(LINESTYLES) > len(arms)
+        for arm, p_h, c_b, color, linestyle in zip(
+            arms, self.values_history, self.bounds_history, colors, linestyles
         ):
             a_n = arm.name
             x = np.arange(len(p_h))
-            ax.plot(x, p_h, label=a_n, color=color)
+            ax.plot(x, p_h, label=a_n, color=color, linestyle=linestyle[1])
             if with_intervals:
                 ax.fill_between(
                     x,
@@ -44,10 +56,49 @@ class MABReturn:
             ax.set_xlim(*xlim)
         if ylim is not None:
             ax.set_ylim(*ylim)
+        # ax.grid()
         ax.set_xlabel(r"$\#$ Iteration")
         ax.set_ylabel(r"$f(x)$")
         plt.legend()
+        if tight_layout:
+            fig.tight_layout()
+        return fig
 
+    def draw_deltas(
+        self,
+        arms,
+        min_values,
+        colors=None,
+        xlim=None,
+        ylim=None,
+        tight_layout=True,
+        linestyles = None
+    ):
+        fig, ax, _ = get_fig_set_style(len(arms))
+        if colors is None:
+            colors = ["b", "g", "r", "black"]
+        if linestyles is None:
+            linestyles = LINESTYLES
+
+        assert len(colors) >= len(arms)
+        assert len(LINESTYLES) > len(arms)
+
+        for arm, p_h, c_b, color, min_val, linestyle in zip(
+            arms, self.values_history, self.bounds_history, colors, min_values, linestyles
+        ):
+            a_n = arm.name
+            x = np.arange(len(p_h))
+            ax.plot(x, p_h - min_val, label=a_n, color=color, linestyle=linestyle[1])
+
+        ax.set_yscale("log")
+        if xlim is not None:
+            ax.set_xlim(*xlim)
+        if ylim is not None:
+            ax.set_ylim(*ylim)
+        # ax.grid()
+        ax.set_xlabel(r"$\#$ Iteration")
+        ax.set_ylabel(r"$f(x) - f_*$")
+        plt.legend()
         if tight_layout:
             fig.tight_layout()
         return fig
@@ -56,10 +107,11 @@ class MABReturn:
         rew_hist = np.array(self.reward_history)
         cumulative_regret = np.cumsum(rew_hist - min_val)
 
-        fig, ax = plt.subplots()
+        fig, ax, _ = get_fig_set_style(1)
         ax.plot(cumulative_regret)
+        # ax.grid()
         ax.set_xlabel(r"$\#$ Iteration")
-        ax.set_ylabel(r"$f_{i_t}(x_{i_t}) - f^*$")
+        ax.set_ylabel(r"Regret")
         if tight_layout:
             fig.tight_layout()
         return fig

@@ -1,0 +1,26 @@
+paths:
+  exp_savepath: ./exp_results/cv
+  model_savepath: None
+  datasets_path: ./data
+
+experiment:
+  name: cifar10_simple_min_log_fixed
+
+  mab_params:
+    num_pulls: 100
+    dataloader_cycled: True
+    dataloader_iters: 50
+
+    train_hyperparams:
+        batch_size: 128
+        lr: 1e-3
+        device: "cuda:2"
+
+  full_train_params:
+      early_stop_epochs: 5
+      early_stop_conf: 0.01
+      epochs: 100
+      batch_size: 128
+
+defaults:
+  - dataset: mnist

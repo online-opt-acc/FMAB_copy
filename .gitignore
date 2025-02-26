@@ -2,3 +2,6 @@
 data/*
 exp_results/*
 *__pycache__*
+multirun
+*mlruns*
+outputs

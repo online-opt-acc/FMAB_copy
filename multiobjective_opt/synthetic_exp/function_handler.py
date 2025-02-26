@@ -101,20 +101,20 @@ class JaxFunc:
             raise e
 
 
-def stack_functions(
-    functions: List[JaxFunc], grad_kwargs: Dict = None, device="cpu"
-) -> JaxFunc:
-    if grad_kwargs is None:
-        grad_kwargs = {}
-    assert device == "cpu" or device.startswith("cuda")
+# def stack_functions(
+#     functions: List[JaxFunc], grad_kwargs: Dict = None, device="cpu"
+# ) -> JaxFunc:
+#     if grad_kwargs is None:
+#         grad_kwargs = {}
+#     assert device == "cpu" or device.startswith("cuda")
 
-    functions = [(f.func if isinstance(f, JaxFunc) else f) for f in functions]
+#     functions = [(f.func if isinstance(f, JaxFunc) else f) for f in functions]
 
-    def function(x):
-        rez = jnp.array([f(x) for f in functions])
-        return rez
+#     def function(x):
+#         rez = jnp.array([f(x) for f in functions])
+#         return rez
 
-    vec_func = JaxFunc(
-        function, vector_valued=True, device=device, grad_kwargs=grad_kwargs
-    )
-    return vec_func
+#     vec_func = JaxFunc(
+#         function, vector_valued=True, device=device, grad_kwargs=grad_kwargs
+#     )
+#     return vec_func
