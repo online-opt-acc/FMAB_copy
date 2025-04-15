@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import copy
 
 import jax.numpy as jnp
@@ -5,7 +6,6 @@ import numpy as np
 from jax import grad
 from multiobjective_opt.synthetic_exp.function_handler import JaxFunc
 from scipy.optimize import Bounds, minimize
-
 
 class Constraints:
     def __init__(self, bounds: Bounds):
@@ -27,7 +27,27 @@ class Constraints:
         return minimizer
 
 
-class SGMTripleAveraging:
+class BaseOptimizer:
+    def __init__(self, oracle: JaxFunc, *args, **kwargs)-> None:
+        """
+        oracle means the function oracle.
+        """
+    @abstractmethod
+    def step(self, *args, **kwargs) -> float:
+        """
+        makes step of optimization and returns value of
+        a function at point with guarantees of convergence
+        """
+        raise NotImplementedError()
+    @abstractmethod
+    def bounds(self) -> float:
+        """
+        returns the confidence bounds of function value
+        """
+        raise NotImplementedError()
+
+
+class SGMTripleAveraging(BaseOptimizer):
     """Implementation of "Subgradient Method with Triple Averaging",
     p.930 of http://link.springer.com/article/10.1007/s10957-014-0677-5
 
@@ -71,7 +91,7 @@ class SGMTripleAveraging:
         self.method_name = "TA"
         self.parameter = gamma
 
-    def step(self):
+    def step(self, *args, **kwargs):
         self.x_k, self.f_k, diff_d_k = (
             self.lambda_k,
             self.oracle(self.lambda_k),
@@ -110,7 +130,7 @@ class SGMTripleAveraging:
         return self.L * self.G / (self.iteration_number**0.5)
 
 
-class AcceleratedGradDescent:
+class AcceleratedGradDescent(BaseOptimizer):
     """
     optimizer for smooth convex functions
 
@@ -140,37 +160,7 @@ class AcceleratedGradDescent:
     def bounds(self):
         return 2 * self.L * self.R**2 / (self.steps**2 + 5 * self.steps + 6)
 
-
-# class StochasticMR:
-#     def __init__(self, oracle: JaxFunc, projection, x0, sigma, M, Dsq):
-#         """
-#         sigma: E ∥G(x,ξt)- f`(x)∥2_* ≤ sigma^2
-#         M: ∥g(x)∥∗≤ M
-#         Dsq: D2X ≡ D2X,ν := max V(x1,x)  # diameter of the set
-#         """
-#         self.y = x0
-#         self.x = x0
-#         self.projection = projection
-#         self.oracle = oracle
-
-#     def step(self, *args, **kwds):
-#         # xt+1 = argminx∈Xγt⟨Gt,x⟩+V(xt,x),t = 1,2,...
-#         y_old = self.y
-#         grad = self.oracle.grad(y_old)
-#         grad = gamma_t * grad
-#         self.y = self.projection(grad, y_old)
-
-#         gamma_sum_tp1 = gamma_sum_t + gamma_t
-#         self.x = 1 / gamma_sum_tp1 * (gamma_sum_t * self.x + gamma_t * self.y)
-
-#         val = self.oracle(self.x)
-#         return val
-
-#     def bounds(self):
-#         raise NotImplemented
-
-
-class StochasticAGD:
+class StochasticAGD(BaseOptimizer):
     def __init__(self, oracle: JaxFunc, projection, x0, sigma, L, D, M, gamma=None):
         """
         L, M: f(y)-f(x)-⟨f'(x),y - x⟩≤L∥y-x∥2+M∥y-x∥
@@ -220,8 +210,8 @@ class StochasticAGD:
         self.x_low = (1 - alpha_t) * self.x_up + alpha_t * self.x
 
         # step 2
-        grad = self.oracle.grad(self.x_low)
-        self.x = self.projection(gamma_t * grad, self.x)
+        grad_ = self.oracle.grad(self.x_low)
+        self.x = self.projection(gamma_t * grad_, self.x)
 
         # step 3
         self.x_up = (1 - alpha_t) * self.x_up + alpha_t * self.x
@@ -237,3 +227,31 @@ class StochasticAGD:
             + 1.9 * (self.M**2 + self.sigma**2) / (self.gamma * t**0.5)
         )
         return bound
+
+# class StochasticMR:
+#     def __init__(self, oracle: JaxFunc, projection, x0, sigma, M, Dsq):
+#         """
+#         sigma: E ∥G(x,ξt)- f`(x)∥2_* ≤ sigma^2
+#         M: ∥g(x)∥∗≤ M
+#         Dsq: D2X ≡ D2X,ν := max V(x1,x)  # diameter of the set
+#         """
+#         self.y = x0
+#         self.x = x0
+#         self.projection = projection
+#         self.oracle = oracle
+
+#     def step(self, *args, **kwds):
+#         # xt+1 = argminx∈Xγt⟨Gt,x⟩+V(xt,x),t = 1,2,...
+#         y_old = self.y
+#         grad = self.oracle.grad(y_old)
+#         grad = gamma_t * grad
+#         self.y = self.projection(grad, y_old)
+
+#         gamma_sum_tp1 = gamma_sum_t + gamma_t
+#         self.x = 1 / gamma_sum_tp1 * (gamma_sum_t * self.x + gamma_t * self.y)
+
+#         val = self.oracle(self.x)
+#         return val
+
+#     def bounds(self):
+#         raise NotImplemented

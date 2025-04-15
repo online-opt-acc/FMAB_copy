@@ -1,0 +1,68 @@
+from abc import ABCMeta, abstractmethod
+from typing import Type
+
+import numpy as np
+
+from multiobjective_opt.mab.environment import Reward
+from multiobjective_opt.mab.reward_estimators import BaseRewardEstimator
+    
+
+class BaseAgent(metaclass=ABCMeta):
+    def __init__(self, n_actions, reward_estimator: BaseRewardEstimator):
+        self._total_pulls: int = 0
+        self.n_actions: int = n_actions
+        self.reward_estimator = reward_estimator
+
+        if not hasattr(self, "_name"):
+            self._name = self.__class__.__name__
+    
+    @abstractmethod
+    def get_action(self):
+        """
+        select action and return it
+        """
+        raise NotImplementedError
+
+    def update(self, action: int, reward: Reward):
+        """
+        update accumulated parameters
+        """
+        self._total_pulls += 1
+        self.reward_estimator.update(action, reward)
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, arg):
+        self._name = arg
+
+class UCB(BaseAgent):
+    def __init__(self, n_actions: int, reward_estimator: Type[BaseRewardEstimator]):
+        super(UCB, self).__init__(n_actions, reward_estimator)
+        self.init_pulls_order = np.random.permutation(n_actions)
+
+    def get_action(self):
+        if self._total_pulls < self.n_actions:
+            return self.init_pulls_order[self._total_pulls]
+
+        estimation = self.reward_estimator.get_estimations()
+        return np.argmax(estimation)
+
+class EpsGreedy(BaseAgent):
+    def __init__(self, n_actions, reward_estimator, eps: float = 1e-2):
+        super().__init__(n_actions, reward_estimator)
+        self.eps = eps
+        self.init_pulls_order = np.random.permutation(n_actions)
+
+    def get_action(self):
+        if self._total_pulls < self.n_actions:
+            return self.init_pulls_order[self._total_pulls]
+
+        if np.random.rand() < self.eps:
+            # random action
+            return np.random.choice(self.n_actions)
+        # else use predicted action
+        estimation = self.reward_estimator.get_estimations()
+        return np.argmax(estimation)

@@ -6,38 +6,19 @@ from tabulate import tabulate
 from omegaconf import DictConfig
 import mlflow
 
-
-from multiobjective_opt.neural_net.models.cifar_models import (
-    CNN,
-    MLP,
-    CNNBatchNorm,
-    CNNDropout,
-    DeepCNN,
-    ResNet18,
-    SimpleLinearModel,
-)
 from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
-from multiobjective_opt.neural_net.utils import funcs
+from multiobjective_opt.neural_net.utils.funcs import train_model
 
+from multiobjective_opt.neural_net.train.train_cifar import get_models
+import multiobjective_opt.neural_net.utils.funcs as funcs
 
-def get_models():
-    models = {
-        "SimpleLinearModel": SimpleLinearModel(),
-        "FullyConnectedModel": MLP(),
-        "Conv2LayerModel": CNN(),
-        "Conv3LayerModel": DeepCNN(),
-        "ConvDropout": CNNDropout(),
-        "ConvBatchNorm": CNNBatchNorm(),
-        "ResNet18": ResNet18(),
-    }
-
-    return list(models.values())
 
 
 def run(num_pulls=200, dataloader_cycled=True, dataloader_iters=50, datasets_path = None, train_hyperparams = None, **kwargs):
     dataloader_cycled = True
-    models_list = get_models()
-
+    models = get_models()
+    model_names = models.keys()
+    models_list = models.values()
     coeffs_list = [50 for i in range(len(models_list))]
 
     model_params = []
@@ -49,12 +30,13 @@ def run(num_pulls=200, dataloader_cycled=True, dataloader_iters=50, datasets_pat
     time_start = time.time()
 
 
-    train_hyperparanms = funcs.TrainHyperparameters(**train_hyperparams)
+    train_hyperparams = funcs.TrainHyperparameters(**train_hyperparams)
     neural_ucb = funcs.UCB_nets(models_list, \
                                 model_params, \
-                                data_loader, \
+                                model_names= model_names,\
+                                data_loader=data_loader,\
                                 coeffs=coeffs_list,\
-                                train_hyperparams=train_hyperparanms)
+                                train_hyperparams=train_hyperparams)
     ucb_ress = neural_ucb.ucb_train_models(sum_epochs=num_pulls)
 
     time_end = time.time() - time_start

@@ -1,25 +1,31 @@
 paths:
-  exp_savepath: ./exp_results/cv
+  root: ~/my_files/multiobjective_opt
+  exp_savepath: ${paths.root}/exp_results/cv
   model_savepath: None
-  datasets_path: ./data
+  datasets_path: ${paths.root}/data
 
 experiment:
-  name: cifar10_simple_min_long_fixed
+  name: cifar10_mix_90
   number: range(0,20)
   iterator: ${hydra:job.num}
   mab_params:
-    num_pulls: 150
+    num_pulls: 350
     dataloader_cycled: True
-    dataloader_iters: 25
+    dataloader_iters: 40
 
     train_hyperparams:
-        batch_size: 128
-        lr: 1e-3
-        device: "cuda:2"
+        batch_size: 64
+        lr: 1e-4
+        scheduler_t_max: 500
+        device: "cuda:3"
 
   full_train_params:
+      early_stop_epochs: 10
+      early_stop_conf: 0.01
       epochs: 100
-      batch_size: 512
+      lr: 1e-4
+      batch_size: 64
+      weight_decay: 5e-6
 
 defaults:
   - dataset: mnist

@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from itertools import cycle
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision import datasets, transforms
 import torchvision
-
+import numpy as np
 
 class LoaderCycleHandler:
     def __init__(self, dataloader: DataLoader, cycled=False, iterator_steps=None):
@@ -31,7 +31,7 @@ class LoaderCycleHandler:
             return self.dataloader
 
 
-class ClassificationDatasetsHandlerBase(ABC):
+class ClassifDatasetHandlerBase(ABC):
     def __init__(self, cycled=False, iterator_steps=None, root="./data"):
         self.cycled = cycled
         self.iterator_steps = iterator_steps
@@ -65,14 +65,14 @@ class ClassificationDatasetsHandlerBase(ABC):
         """
         loads and returns train and test dataset
         """
-        train_dataset, test_dataset = self._load_dataset(batch_size)
+        train_dataset, val_dataset, test_dataset = self._load_dataset(batch_size)
         train_dataset = LoaderCycleHandler(
             train_dataset, self.cycled, self.iterator_steps
         )
-        return train_dataset, test_dataset
+        return train_dataset, val_dataset, test_dataset
 
 
-class MNISTHandler(ClassificationDatasetsHandlerBase):
+class MNISTHandler(ClassifDatasetHandlerBase):
     @property
     def item_shape(self):
         return (1, 28, 28)
@@ -103,7 +103,7 @@ class MNISTHandler(ClassificationDatasetsHandlerBase):
         return train_loader, test_loader
 
 
-class CIFAR10Handler(ClassificationDatasetsHandlerBase):
+class CIFAR10Handler(ClassifDatasetHandlerBase):
     @property
     def item_shape(self):
         return (3, 32, 32)
@@ -114,7 +114,8 @@ class CIFAR10Handler(ClassificationDatasetsHandlerBase):
     ):
         return 10
 
-    def _load_dataset(self, batch_size=128):
+    def _load_dataset(self, batch_size=128, valid_size = 0.1):
+
         transform = transforms.Compose(
             [
                 transforms.ToTensor(),
@@ -130,27 +131,29 @@ class CIFAR10Handler(ClassificationDatasetsHandlerBase):
             root=self.root, train=False, download=True, transform=transform
         )
 
+        # partitioner
+        train_length = len(train_dataset)
+        indices=list(range(train_length))
+        split = int(np.floor(valid_size * train_length))
+        
+        np.random.shuffle(indices)
+
+        train_idx=indices[split:]
+        valid_idx=indices[:split]
+
+        train_sampler=SubsetRandomSampler(train_idx)
+        validation_sampler=SubsetRandomSampler(valid_idx)
+        # partitioner
+
         # make_dataloaders
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler)
+        val_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=validation_sampler)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        # CIFAR-10 classes
-        # classes = (
-        #     "plane",
-        #     "car",
-        #     "bird",
-        #     "cat",
-        #     "deer",
-        #     "dog",
-        #     "frog",
-        #     "horse",
-        #     "ship",
-        #     "truck",
-        # )
-        return train_loader, test_loader  # , classes
+        return train_loader,val_loader, test_loader  # , classes
 
 
-class CIFAR100Handler(ClassificationDatasetsHandlerBase):
+class CIFAR100Handler(ClassifDatasetHandlerBase):
     @property
     def item_shape(self):
         return (3, 32, 32)
