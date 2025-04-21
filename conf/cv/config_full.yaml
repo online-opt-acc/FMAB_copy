@@ -4,7 +4,7 @@ paths:
   datasets_path: ./data
 
 experiment:
-  name: cifar10_simple_min_log_fixed
+  name: cifar10_simple_min_log_fixed_new
 
   mab_params:
     num_pulls: 100
@@ -17,10 +17,12 @@ experiment:
         device: "cuda:2"
 
   full_train_params:
-      early_stop_epochs: 5
-      early_stop_conf: 0.01
+      early_stop_epochs: 10
+      early_stop_conf: 0.001
       epochs: 100
-      batch_size: 128
+      lr: 1e-4
+      batch_size: 64
+      weight_decay: 1e-5
 
 defaults:
   - dataset: mnist

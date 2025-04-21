@@ -1,3 +1,6 @@
+from dataclasses import asdict, fields, is_dataclass
+from typing import Any, Dict
+
 import itertools
 import os
 
@@ -16,11 +19,11 @@ warnings.filterwarnings("ignore")
 ##################################################################################
 LINESTYLES = [
     ("d", "dashdot"),
-    ("dashdotted", (0, (3, 5, 1, 5))),
-    ("d", "dotted"),
     ("d", "solid"),
-    ("d", "dashed"),
+    ("dashdotted", (0, (3, 5, 1, 5))),
     ("dashed", (0, (5, 5))),
+    ("d", "dotted"),
+    ("d", "dashed"),
     ("long dash with offset", (1, (1, 0))),
     ("densely dashdotdotted", (0, (3, 1, 1, 1, 1, 1))),
     ("densely dashed", (0, (2, 2))),
@@ -82,26 +85,26 @@ def savefig(fig, path, name, *args, **kwargs):
     # plt.imsave(str(path / f"{name}_image_gray.png"), data, cmap="gray")
     # plt.imsave(str(path / f"{name}_image_gray.pdf"), data, cmap="gray")
 
-import subprocess
-from itertools import cycle
-import fire
-from joblib import Parallel, delayed
-
-def _multirun(i, device, iters = 5):
-    pr_name = "python multiobjective_opt/neural_net/train/mab_cifar.py"
-    for j in range(iters):
-        command = f'{pr_name} experiment.number="{i}:{j}" experiment.mab_params.train_hyperparams.device="{device}"'
-        subprocess.run(command, shell=True)
-
-def multirun(num_runs = 3):
-# Генерация значений
-    devices = cycle(["cuda:1", "cuda:2", "cuda:3"])
-    values = range(num_runs)
-
-    runner = delayed(_multirun)
-    # Запуск Hydra с каждым значением
-    Parallel(3)(runner(i, device) for i, device in zip(values, devices))
 
 
-if __name__=="__main__":
-    fire.Fire(multirun)
+def flatten_dataclass(obj: Any, parent_key: str = '', sep: str = '.') -> Dict[str, Any]:
+    flat_dict = {}
+    
+    if is_dataclass(obj):
+        for field in fields(obj):
+            field_value = getattr(obj, field.name)
+            new_key = f"{parent_key}{sep}{field.name}" if parent_key else field.name
+            flat_dict.update(flatten_dataclass(field_value, new_key, sep))
+    elif isinstance(obj, (list, tuple)):
+        for i, item in enumerate(obj):
+            new_key = f"{parent_key}{sep}{i}" if parent_key else str(i)
+            flat_dict.update(flatten_dataclass(item, new_key, sep))
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            flat_dict.update(flatten_dataclass(v, new_key, sep))
+    else:
+        if parent_key:  # Игнорируем "лишние" ключи для примитивов
+            flat_dict[parent_key] = obj
+    return flat_dict
+            

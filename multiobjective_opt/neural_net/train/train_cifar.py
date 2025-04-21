@@ -13,31 +13,53 @@ import mlflow
 from tabulate import tabulate
 
 from joblib import Parallel, delayed
-from multiobjective_opt.neural_net.models.cifar_models import (
-    CNN,
-    MLP,
-    CNNBatchNorm,
-    CNNDropout,
-    DeepCNN,
-    ResNet18,
-    SimpleLinearModel,
-)
+
 from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
 from multiobjective_opt.neural_net.utils.funcs import train_model
 
 
+from multiobjective_opt.neural_net.models.cifar_models import (
+    # CNN,
+    # MLP,
+    # CNNBatchNorm,
+    # CNNDropout,
+    # DeepCNN,
+    ResNet18
+    # SimpleLinearModel,
+)
+
+from multiobjective_opt.neural_net.models.cifar_models import (
+    # ResNet18Torch,
+    DeepMLP,
+    ShallowMLP,
+    VGGLike
+    # ViTModel
+)
+
+# from multiobjective_opt.neural_net.models.cifar_vit import ViTSmall
+
 def get_models():
     models = {
-        "SimpleLinearModel": SimpleLinearModel(),
-        "FullyConnectedModel": MLP(),
-        "Conv2LayerModel": CNN(),
-        "Conv3LayerModel": DeepCNN(),
-        "ConvDropout": CNNDropout(),
-        "ConvBatchNorm": CNNBatchNorm(),
-        "ResNet": ResNet18(),
+        # "SimpleLinearModel": SimpleLinearModel(),
+        # "FullyConnectedModel": MLP(),
+        # "Conv2LayerModel": CNN(),
+        # "Conv3LayerModel": DeepCNN(),
+        # "ShallowMLP": ShallowMLP(),
+        # "ConvDropout": CNNDropout(),
+        # "ConvBatchNorm": CNNBatchNorm(),
+        "ShallowMLP": ShallowMLP(),
+        "ResNet18": ResNet18(),
+        "DeepMLPNorm": DeepMLP(),
+        "VGGLike": VGGLike(),
+        "DeepMLP": DeepMLP(False),
+            # "ResNet18": ResNet18Torch(),
+        # "DeepMLP_norm": DeepMLP(),
+            # "DeepMLP": DeepMLP(False),
+            # "ViTModel": ViTModel()
+            # "ViTSmall": ViTSmall()
     }
-    
     return models
+
 
 def run_parallel_handler(parent_run_id,model_name, *args, **kwargs):
     with mlflow.start_run(run_name=model_name, nested=True, parent_run_id=parent_run_id) as child_run:
@@ -46,19 +68,19 @@ def run_parallel_handler(parent_run_id,model_name, *args, **kwargs):
     return res
         
 def run(parent_run_id, dataset_path, batch_size = 512, **kwargs):
-    train_loader, test_loader = CIFAR10Handler(False, root = dataset_path).load_dataset(batch_size=batch_size)
+    train_loader, _, test_loader = CIFAR10Handler(False, root = dataset_path).load_dataset(batch_size=batch_size)
     train_loader = train_loader.get_iterator()
     # Создание и обучение моделей
     models = get_models()
-    devices = cycle(["cuda:0", "cuda:1", "cuda:2", "cuda:3"])
+    devices = cycle(["cuda:2", "cuda:3"])
     model_results = {}
 
     delayed_trainer = delayed(run_parallel_handler)
-    parallelizer = Parallel(4)
+    parallelizer = Parallel(5)
 
     # model_names = list(models.keys())
+    model_names = list(models.keys())
     models = list(models.values())
-    model_names = [m.__class__.__name__ for m in models]
 
     results = parallelizer(
         delayed_trainer(parent_run_id, model_name, model, train_loader, test_loader, verbose=False, device = device, **kwargs)
@@ -70,7 +92,7 @@ def run(parent_run_id, dataset_path, batch_size = 512, **kwargs):
 
     return model_results
 
-@hydra.main(version_base=None, config_path="./../../../conf/cv", config_name="config_full")
+@hydra.main(version_base=None, config_path="./../../../conf/cv", config_name="config")
 def main(cfg: DictConfig = None):
     exp_name = cfg.experiment.name
 

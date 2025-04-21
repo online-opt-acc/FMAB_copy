@@ -2,15 +2,14 @@
 this is a handler for functions
 to wrap them into jax
 """
-from typing import Callable, Dict, List
+from typing import Callable, Dict
 
 import jax
 import numpy as np
 from jax import grad, jacobian
-from jax import numpy as jnp
 
 
-class DefalutRandomizer:
+class DefalutVectRandomizer:
     def __init__(self, dim=0, **kwargs):
         self.dim = dim
 
@@ -22,8 +21,7 @@ class DefalutRandomizer:
             return 0.0
         return np.zeros(self.dim, dtype=float)
 
-
-class NormalRandomizer(DefalutRandomizer):
+class NormalVectRandomizer(DefalutVectRandomizer):
     def __init__(self, dim, sigma, seed=None):
         """
         returns noise to be scaled as
@@ -76,9 +74,9 @@ class JaxFunc:
             self._grad = grad(func, **grad_kwargs)
 
         if value_randomizer is None:
-            value_randomizer = DefalutRandomizer(output_dim)
+            value_randomizer = DefalutVectRandomizer(output_dim)
         if grad_randomizer is None:
-            grad_randomizer = DefalutRandomizer((input_dim, output_dim))
+            grad_randomizer = DefalutVectRandomizer((input_dim, output_dim))
 
         self.value_randomizer = value_randomizer
         self.grad_randomizer = grad_randomizer
@@ -97,24 +95,5 @@ class JaxFunc:
             # print(self._grad(*x).shape, self.grad_randomizer().shape)
             return self._grad(*x) + self.grad_randomizer().squeeze()
         except TypeError as e:
-            # TODO: ловить ошибку если функция векторная и переделать ее градиент
-            raise e
-
-
-# def stack_functions(
-#     functions: List[JaxFunc], grad_kwargs: Dict = None, device="cpu"
-# ) -> JaxFunc:
-#     if grad_kwargs is None:
-#         grad_kwargs = {}
-#     assert device == "cpu" or device.startswith("cuda")
-
-#     functions = [(f.func if isinstance(f, JaxFunc) else f) for f in functions]
-
-#     def function(x):
-#         rez = jnp.array([f(x) for f in functions])
-#         return rez
-
-#     vec_func = JaxFunc(
-#         function, vector_valued=True, device=device, grad_kwargs=grad_kwargs
-#     )
-#     return vec_func
+            raise NotImplementedError("here function grdient should be" \
+            "rebuilded to vector of gradient") from e

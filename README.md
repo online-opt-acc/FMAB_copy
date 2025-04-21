@@ -2,4 +2,14 @@
 code for online multicriteria optimization
 
 
-# coming soon...
+
+# installation
+```[bash]
+poetry install
+```
+
+# running experiments
+
+```
+python experiment_code/synthetic_experiments.py
+```
