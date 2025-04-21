@@ -50,6 +50,7 @@ class UCB(BaseAgent):
         estimation = self.reward_estimator.get_estimations()
         return np.argmax(estimation)
 
+
 class EpsGreedy(BaseAgent):
     def __init__(self, n_actions, reward_estimator, eps: float = 1e-2):
         super().__init__(n_actions, reward_estimator)
@@ -66,3 +67,27 @@ class EpsGreedy(BaseAgent):
         # else use predicted action
         estimation = self.reward_estimator.get_estimations()
         return np.argmax(estimation)
+    
+class Uniform(BaseAgent):
+    def __init__(self, n_actions: int, reward_estimator: BaseRewardEstimator, budget: int):
+        super().__init__(n_actions, reward_estimator)
+        self.pull_order = np.random.permutation(n_actions)
+        self.budget = budget
+    def get_action(self):
+        if self._total_pulls < self.budget:
+            pos = self._total_pulls // self.n_actions
+            return self.pull_order[pos]
+        # else greedily use the best action
+        estimation = self.reward_estimator.get_estimations()
+        return np.argmax(estimation)
+
+class Hyperband(BaseAgent):
+    def __init__(self, n_actions, reward_estimator, R, eta = 2):
+        """
+        :n_actions: number of actions
+        :reward_estimator: estimator
+        :R:  the budget,
+        :eta: 
+        """
+        s = np.floor(np.log(R)/np.log(eta))
+        
