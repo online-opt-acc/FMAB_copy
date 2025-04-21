@@ -2,6 +2,7 @@
 code for online multicriteria optimization
 
 
+
 # installation
 ```[bash]
 poetry install
@@ -12,4 +13,3 @@ poetry install
 ```
 python experiment_code/synthetic_experiments.py
 ```
-
