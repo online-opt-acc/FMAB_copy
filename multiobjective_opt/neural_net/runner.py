@@ -73,6 +73,6 @@ class NeuralRunner(RunAlgEnv):
                         n_actions=self.environment.n_actions,
                         rewards_history=rewards_history,
                         actions_history=actions_history,
-                        test_history=test_history  
+                        test_history=test_history
             )
         return res

@@ -89,5 +89,5 @@ class Hyperband(BaseAgent):
         :R:  the budget,
         :eta: 
         """
-        s = np.floor(np.log(R)/np.log(eta))
+        raise NotImplementedError()
         

@@ -5,19 +5,24 @@ paths:
   datasets_path: ${paths.root}/data
 
 experiment:
-  name: cifar10_mix_90
-  number: range(0,20)
+  name: new_experiments
+  subexp_name: 1
   iterator: ${hydra:job.num}
   mab_params:
+    mab_type: UCB # EpsGreedy
     num_pulls: 350
     dataloader_cycled: True
     dataloader_iters: 40
+
+    # parameter of mean estimator
+    mean_estimator_params:
+      coeff_scaler: 4.
 
     train_hyperparams:
         batch_size: 64
         lr: 1e-4
         scheduler_t_max: 500
-        device: "cuda:3"
+        device: "cuda:2"
 
   full_train_params:
       early_stop_epochs: 10
