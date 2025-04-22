@@ -228,6 +228,87 @@ class StochasticAGD(BaseOptimizer):
         )
         return bound
 
+class OrderRCD(BaseOptimizer):
+    def __init__(self, oracle: JaxFunc, order_oracle_noise, x_start, L, alpha):
+        self.oracle = oracle
+        self.steps = 0
+        self.x = x_start
+        self.n = len(x_start)
+        self.order_oracle = lambda x, y: np.sign(oracle(x) - oracle(y) + order_oracle_noise())
+        self.S = np.sum(L**alpha)
+        self.p = L**alpha / self.S
+
+    def generate_direction(self):
+        i = np.random.choice(list(range(self.n)), p=self.p)
+        e_i = np.zeros(self.n)
+        e_i[i] = 1
+        return i, e_i
+
+    def GoldenRatioMethod(self, order_oracle, a, b, eps):
+        rho = (np.sqrt(5) - 1) / 2
+        y = a + (1 - rho) * (b - a)
+        z = a + rho * (b - a)
+        while b - a > eps:
+            if order_oracle(y, z) == -1:
+                b = z
+                z = y
+                y = a + (1 - rho) * (b - a)
+            else:
+                a = y
+                y = z
+                z = a + rho * (b - a)
+        return (a + b) / 2
+
+    def optimize_1D(self, x, e):
+        a = self.GoldenRatioMethod(lambda a, b: self.order_oracle(x + a * e, x + b * e), -100, 100, 0.01)
+        return a, x + a * e
+
+    def step(self, *args, **kwargs):
+        _, e_i = self.generate_direction()
+        _, self.x = self.optimize_1D(self.x, e_i)
+        return self.oracle(self.x)
+
+    def bounds(self):
+        return 0
+
+class OrderRCDAccelerated(OrderRCD):
+    def __init__(self, oracle: JaxFunc, order_oracle_noise, x_start, L, mu, alpha, beta=None, A=0, B=1):
+        if beta is None:
+            beta = alpha / 2
+        self.oracle = oracle
+        self.steps = 0
+        self.x = x_start
+        self.z = x_start
+        self.n = len(x_start)
+        self.order_oracle = lambda x, y: np.sign(oracle(x) - oracle(y) + order_oracle_noise())
+        self.S = np.sum(L**beta)
+        self.p = L**beta / self.S
+        self.L = L
+        self.mu = mu
+        self.A = A
+        self.B = B
+        self.alpha_constant = alpha
+
+    def optimize_1D(self, x, e):
+        a = self.GoldenRatioMethod(lambda a, b: self.order_oracle(x + a * e, x + b * e), -100, 100, 0.01)
+        return a, x + a * e
+
+    def step(self, *args, **kwargs):
+        i, e_i = self.generate_direction()
+        a = np.roots([self.mu - self.S**2, self.B + self.mu * self.A, self.A * self.B]).max()
+        self.A += a
+        self.B += self.mu * a
+        alpha = a / self.A
+        beta = self.mu * a / self.B
+        y = (1 - alpha) * self.x + alpha * (1 - beta) * self.z
+        eta, self.x = self.optimize_1D(y, e_i)
+        w = (1 - beta) * self.z + beta * y + (a * self.L[i]**self.alpha_constant) * eta * e_i / (self.B * self.p[i])
+        _, self.z = self.optimize_1D(w, e_i)
+        return self.oracle(self.x)
+
+    def bounds(self):
+        return 0
+
 # class StochasticMR:
 #     def __init__(self, oracle: JaxFunc, projection, x0, sigma, M, Dsq):
 #         """
