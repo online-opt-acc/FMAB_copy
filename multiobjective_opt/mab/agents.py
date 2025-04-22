@@ -75,7 +75,8 @@ class Uniform(BaseAgent):
         self.budget = budget
     def get_action(self):
         if self._total_pulls < self.budget:
-            pos = self._total_pulls // self.n_actions
+            pull_per_arm = self.budget//self.n_actions
+            pos = self._total_pulls // pull_per_arm
             return self.pull_order[pos]
         # else greedily use the best action
         estimation = self.reward_estimator.get_estimations()
@@ -91,3 +92,47 @@ class Hyperband(BaseAgent):
         """
         raise NotImplementedError()
         
+
+from multiobjective_opt.mab.agents import BaseAgent
+class SuccessiveHalving(BaseAgent):
+    def __init__(self, n_actions, reward_estimator, budget: int):
+        super().__init__(n_actions, reward_estimator)
+        self.budget = budget
+        # define values
+        self._num_halving_iterations = int(np.ceil(np.log2(self.n_actions)))
+        self.active_arms = np.random.permutation(self.n_actions).tolist()
+
+        self.iterator = self.actions_iterator()
+
+    def _halving(self):
+        estimation = self.reward_estimator.get_estimations()
+        active_arm_estimations = estimation[self.active_arms]
+
+        n_active_arms = len(self.active_arms)
+        n_new_arms = int(np.floor(n_active_arms/2))
+        best_arm_ind = np.argsort(active_arm_estimations)[-n_new_arms:]
+
+        self.active_arms = np.array(self.active_arms)[best_arm_ind].tolist()
+
+    def actions_iterator(self):
+        last_arm = None
+        pulls_per_iteration = self.budget / self._num_halving_iterations
+
+        for _ in range(self._num_halving_iterations):
+            n_active_arms = len(self.active_arms)
+
+            actions_per_arm = int(np.floor(pulls_per_iteration/n_active_arms))
+
+            for arm in range(n_active_arms):
+                for _ in range(actions_per_arm):
+                    last_arm = self.active_arms[arm]
+                    yield self.active_arms[arm]
+            
+            self._halving()
+
+        while True:
+            yield last_arm
+        
+    def get_action(self):
+        return next(self.iterator)
+

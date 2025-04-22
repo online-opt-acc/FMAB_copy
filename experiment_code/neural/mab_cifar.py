@@ -1,4 +1,5 @@
 import time
+import numpy as np
 import pandas as pd
 import hydra
 from tabulate import tabulate
@@ -16,6 +17,7 @@ from multiobjective_opt.neural_net.runner import NeuralRunner, NeuralRUNResult
 from multiobjective_opt.mab.agents import (
                 UCB, 
                 EpsGreedy,
+                SuccessiveHalving,
                 Uniform,
                 Hyperband
         )
@@ -58,33 +60,56 @@ def get_runner(
 
     # set up agent
     n_actions = len(models)
-    reward_estimator = NeuralRewardEstimator(
-                n_actions=n_actions,
-                **mean_estimator_params,
-            )
+
         # set up mab agent class
 
     # initialize mab agent
     match mab_type:
         case "UCB":
+            reward_estimator = NeuralRewardEstimator(
+                n_actions=n_actions,
+                **mean_estimator_params,
+                )
             agent = UCB(
                     n_actions=n_actions,
                     reward_estimator=reward_estimator
                 )
         case "EpsGreedy":
             assert "eps" in kwargs, "provide 'eps' parameter via 'experiment.mab_params.eps=1e-2'"
-
+            reward_estimator = NeuralRewardEstimator(
+                n_actions=n_actions,
+                c = np.zeros(n_actions, float),
+                **mean_estimator_params,
+                )
             agent = EpsGreedy(
                     n_actions=n_actions,
                     reward_estimator=reward_estimator,
                     eps = kwargs["eps"]
                 )
         case "Uniform":
+            reward_estimator = NeuralRewardEstimator(
+                n_actions=n_actions,
+                c = np.zeros(n_actions, float),
+                **mean_estimator_params,
+                )
+            
             agent = Uniform(
                     n_actions=n_actions,
                     reward_estimator=reward_estimator,
                     budget=kwargs['num_pulls']
-                )                    
+                )
+        case "SuccessiveHalving":
+            reward_estimator = NeuralRewardEstimator(
+                n_actions=n_actions,
+                c = np.zeros(n_actions, float),
+                **mean_estimator_params,
+                )
+            
+            agent = SuccessiveHalving(
+                    n_actions=n_actions,
+                    reward_estimator=reward_estimator,
+                    budget=kwargs['num_pulls']
+                )
         case _:
             raise ValueError("there is no such type of agents")
 
