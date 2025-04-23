@@ -32,6 +32,7 @@ def get_runner(
                dataloader_iters=50,
                datasets_path = None,
                train_hyperparams = None,
+               eval_criterion = EvalCriterion.LOSS,
                mab_type = "UCB",
                **kwargs):
         
@@ -54,7 +55,7 @@ def get_runner(
         model_params=model_params,
         model_names=model_names,
         data_loader=data_loader,
-        eval_criterion=EvalCriterion.LOSS,
+        eval_criterion=eval_criterion,
         train_hyperparams=train_hyperparams,
     )
 
