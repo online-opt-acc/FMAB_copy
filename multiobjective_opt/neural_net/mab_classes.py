@@ -162,8 +162,7 @@ class NeuralRewardEstimator(BaseRewardEstimator):
             self.c = np.ones((n_actions,), float)
             self.update_on_first_iter = True
         else:
-            assert len(c) == n_actions
-            assert np.all(c >= 0)
+            assert (len(c) == n_actions) and (np.all(c >= 0))
             self.c = c
             self.update_on_first_iter = False
 

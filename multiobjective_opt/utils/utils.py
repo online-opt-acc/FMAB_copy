@@ -71,7 +71,7 @@ def get_fig_set_style(lines_count, shape=(1, 1), figsize=None, params = None):
         fig, ax = plt.subplots(*shape, dpi=DPI, figsize=figsize,)
     # plt.rcParams['text.usetex'] = True
     # plt.rcParams['text.latex.unicode'] = True
-    plt.grid(which="both")
+    # plt.grid(which="both")
     return fig, ax, colors_list
 
 def savefig(fig, path, name, *args, **kwargs):

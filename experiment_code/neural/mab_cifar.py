@@ -88,6 +88,7 @@ def get_runner(
                     eps = kwargs["eps"]
                 )
         case "Uniform":
+            
             reward_estimator = NeuralRewardEstimator(
                 n_actions=n_actions,
                 c = np.zeros(n_actions, float),
@@ -100,6 +101,7 @@ def get_runner(
                     budget=kwargs['num_pulls']
                 )
         case "SuccessiveHalving":
+
             reward_estimator = NeuralRewardEstimator(
                 n_actions=n_actions,
                 c = np.zeros(n_actions, float),

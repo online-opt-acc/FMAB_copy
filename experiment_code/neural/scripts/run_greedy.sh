@@ -21,3 +21,5 @@ do
             +experiment.mab_params.eps=0.07
 
 done
+
+python experiment_code/neural/draw_utils/plot_experiments.py --EXP_NAME="${exp_name}" --RUN_NAME_ST="mab_train;${mab_type}" --N_ARMS=5

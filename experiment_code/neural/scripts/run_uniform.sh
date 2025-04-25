@@ -6,7 +6,9 @@ T=350
 exp_name="experiments_cycle"
 cuda_device="cuda:2"
 
-mab_type="SuccessiveHalving"
+
+#uniform
+mab_type="Uniform"
 for ((i=0; i<${num_runs};i++))
 do
     python experiment_code/neural/mab_cifar.py \
@@ -17,4 +19,4 @@ do
             experiment.mab_params.mab_type=${mab_type}
 done
 
-
+python experiment_code/neural/draw_utils/plot_experiments.py --EXP_NAME="${exp_name}" --RUN_NAME_ST="mab_train;${mab_type}" --N_ARMS=5

@@ -244,7 +244,7 @@ class OrderRCD(BaseOptimizer):
         e_i[i] = 1
         return i, e_i
 
-    def GoldenRatioMethod(self, order_oracle, a, b, eps):
+    def golden_ratio_method(self, order_oracle, a, b, eps):
         rho = (np.sqrt(5) - 1) / 2
         y = a + (1 - rho) * (b - a)
         z = a + rho * (b - a)
@@ -260,7 +260,7 @@ class OrderRCD(BaseOptimizer):
         return (a + b) / 2
 
     def optimize_1D(self, x, e):
-        a = self.GoldenRatioMethod(lambda a, b: self.order_oracle(x + a * e, x + b * e), -100, 100, 0.01)
+        a = self.golden_ratio_method(lambda a, b: self.order_oracle(x + a * e, x + b * e), -100, 100, 0.01)
         return a, x + a * e
 
     def step(self, *args, **kwargs):
@@ -290,7 +290,7 @@ class OrderRCDAccelerated(OrderRCD):
         self.alpha_constant = alpha
 
     def optimize_1D(self, x, e):
-        a = self.GoldenRatioMethod(lambda a, b: self.order_oracle(x + a * e, x + b * e), -100, 100, 0.01)
+        a = self.golden_ratio_method(lambda a, b: self.order_oracle(x + a * e, x + b * e), -100, 100, 0.01)
         return a, x + a * e
 
     def step(self, *args, **kwargs):
