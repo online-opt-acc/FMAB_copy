@@ -4,8 +4,8 @@ from typing import List
 
 import numpy as np
 from multiobjective_opt.mab.runner import RUNResult
-from multiobjective_opt.neural_net.train import mab_cifar
-from multiobjective_opt.synthetic_exp.mab_classes import FuncReward
+# from multiobjective_opt.neural_net.train import mab_cifar
+# from multiobjective_opt.synthetic_exp.mab_classes import FuncReward
 from multiobjective_opt.utils.utils import get_fig_set_style, LINESTYLES
 
 import matplotlib.pyplot as plt

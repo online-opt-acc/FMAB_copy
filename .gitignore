@@ -1,6 +1,6 @@
 *.csv
 data/*
-exp_results/*
+exp_results
 *__pycache__*
 multirun
 *mlruns*
