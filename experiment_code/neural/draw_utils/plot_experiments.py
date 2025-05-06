@@ -63,6 +63,7 @@ def parse_run_values(f, n_arms, arm_key, duration_key):
     
     for i, elem in enumerate(f[:n_arms]):
         # processing init pulls
+        print(elem)
         arm = elem[arm_key]
         duration[arm] = elem[duration_key] - (f[i-1][duration_key] if i > 0 else 0)
         for k, v in elem.items():

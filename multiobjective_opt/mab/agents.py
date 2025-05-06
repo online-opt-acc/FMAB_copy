@@ -93,13 +93,18 @@ class Hyperband(BaseAgent):
         raise NotImplementedError()
         
 
-from multiobjective_opt.mab.agents import BaseAgent
+
 class SuccessiveHalving(BaseAgent):
-    def __init__(self, n_actions, reward_estimator, budget: int):
+    def __init__(self, n_actions, reward_estimator, budget: int, eta= 2.):
         super().__init__(n_actions, reward_estimator)
         self.budget = budget
         # define values
-        self._num_halving_iterations = int(np.ceil(np.log2(self.n_actions)))
+
+        assert eta > 1
+
+        self.eta = eta
+
+        self._num_halving_iterations = int(np.ceil(np.log2(self.n_actions)/np.log2(self.eta)))
         self.active_arms = np.random.permutation(self.n_actions).tolist()
 
         self.iterator = self.actions_iterator()
@@ -109,7 +114,7 @@ class SuccessiveHalving(BaseAgent):
         active_arm_estimations = estimation[self.active_arms]
 
         n_active_arms = len(self.active_arms)
-        n_new_arms = int(np.floor(n_active_arms/2))
+        n_new_arms = int(np.floor(n_active_arms/self.eta))
         best_arm_ind = np.argsort(active_arm_estimations)[-n_new_arms:]
 
         self.active_arms = np.array(self.active_arms)[best_arm_ind].tolist()
@@ -136,3 +141,12 @@ class SuccessiveHalving(BaseAgent):
     def get_action(self):
         return next(self.iterator)
 
+
+# class Hyperband(BaseAgent):
+#     def __init__(self, n_actions, reward_estimator, budget: int, eta = 2., stages = None):
+#         self.logeta = lambda x: np.log( x ) / np.log( self.eta )
+
+#         self.budget =  budget
+
+#         if stages is None:
+#             stages = int( self.logeta( self.max_iter ))

@@ -14,6 +14,8 @@ experiment:
     dataloader_cycled: True
     dataloader_iters: 40
 
+    hyperband_eta: 3
+
     # parameter of mean estimator
     mean_estimator_params:
       coeff_scaler: 4.

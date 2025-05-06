@@ -17,11 +17,12 @@ from multiobjective_opt.neural_net.runner import NeuralRunner, NeuralRUNResult
 from multiobjective_opt.mab.agents import (
                 UCB, 
                 EpsGreedy,
+                # Hyperband,
                 SuccessiveHalving,
                 Uniform,
-                Hyperband
         )
 
+from experiment_code.neural.train.hyperband import HyperbandRunner, ModelSampler
 
 from experiment_code.neural.train_cifar import get_models
 from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
@@ -113,6 +114,15 @@ def get_runner(
                     reward_estimator=reward_estimator,
                     budget=kwargs['num_pulls']
                 )
+        case "Hyperband":
+            model_sampler = ModelSampler(data_loader, eval_criterion, train_hyperparams)
+
+            agent_runner = HyperbandRunner(model_sampler, 
+                                           max_iter= None,
+                                           eta = kwargs['hyperband_eta'],
+                                           max_budget=kwargs['num_pulls'])
+            return agent_runner, None, None
+
         case _:
             raise ValueError("there is no such type of agents")
 
@@ -136,8 +146,9 @@ def main(cfg: DictConfig = None):
 
         runner, env, _ = get_runner(datasets_path = cfg.paths.datasets_path, **cfg.experiment.mab_params)
 
-        alg_names = [arm.name for arm in env.arms]
-        mlflow.log_param("alg_names", alg_names)
+        if env is not None:
+            alg_names = [arm.name for arm in env.arms]
+            mlflow.log_param("alg_names", alg_names)
 
         result: NeuralRUNResult = runner.run(cfg.experiment.mab_params.num_pulls)
 
