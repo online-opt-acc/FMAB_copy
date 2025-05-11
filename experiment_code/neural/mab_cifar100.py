@@ -24,8 +24,28 @@ from multiobjective_opt.mab.agents import (
 
 from experiment_code.neural.train.hyperband import HyperbandRunner, ModelSampler
 
-from experiment_code.neural.train_cifar import get_models
-from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
+from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR100Handler
+######################################################################
+import multiobjective_opt.neural_net.models.pytorch_cifar_models as models_pull
+
+def get_models():
+    def get_n_params(model):
+        return sum(p.numel() for p in model.parameters())
+    
+    cifar100_models = {}
+    for model_class in dir(models_pull):
+        if not "100" in model_class:
+            continue
+        model = getattr(models_pull, model_class)()
+        if get_n_params(model) > 5e6:
+            continue
+        cifar100_models[model_class] = model
+    return cifar100_models
+
+
+
+######################################################################
+
 
 def get_runner(
                 mean_estimator_params,
@@ -47,7 +67,7 @@ def get_runner(
     for _ in models_list:
         model_params.append({})
 
-    data_loader = CIFAR10Handler(dataloader_cycled, dataloader_iters, root = datasets_path)
+    data_loader = CIFAR100Handler(dataloader_cycled, dataloader_iters, root = datasets_path)
     train_hyperparams = TrainHyperparameters(**train_hyperparams)
 
     # set up environment

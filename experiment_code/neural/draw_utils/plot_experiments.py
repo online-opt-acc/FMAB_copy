@@ -113,13 +113,13 @@ def plot_figures_by_key(alg_names,
     plot_vals(ax=ax[0],
               run_hist=get_loss_hist(f_key, run_results),
               ylabel=f_name,
-              ylim=(0.08, 0.85),
+              ylim=(0.0, 0.3),
               model_names=alg_names)
 
     plot_vals(ax=ax[1],
               run_hist=get_loss_hist(s_key, run_results),
               ylabel=s_name,
-              ylim=(0.5, 2.5),
+              ylim=(2.5, 5),
               model_names=alg_names)
 
     h, legend_ = ax[0].get_legend_handles_labels()
@@ -128,13 +128,13 @@ def plot_figures_by_key(alg_names,
     ####################################
     #  mix positions in legend. specified for this experiment
 
-    pos = [1, 0, 3, 4, 2]
-    print(legend_)
-    legend_, h = [legend_[p] for p in pos], [h[p] for p in pos]
+    # pos = [1, 0, 3, 4, 2]
+    # print(legend_)
+    # legend_, h = [legend_[p] for p in pos], [h[p] for p in pos]
     fig.legend(
         h,
         legend_,
-        ncol=3,
+        ncol=2,
         bbox_to_anchor=(0.0, -0.06, 1, 0.10),
         loc="outside upper left",
         mode="expand",
@@ -188,6 +188,7 @@ def plot_regret(runs, N_ARMS):
 
             plot_res = np.array([[elem[col_name] for elem in res[1]] for res in run_res_list])
 
+            print(plot_res)
             plot_res = np.cumsum(plot_res, 1)
             mean_loss = plot_res.mean(0)
             low_loss = np.quantile(plot_res, 0.1, 0)
@@ -239,7 +240,7 @@ def main(EXP_NAME: str, RUN_NAME_ST: str, N_ARMS: int):
     # now plot_values
 
     figures: dict = plot_figures(alg_names, run_results)
-    figures["regret"] = plot_regret(runs, N_ARMS)
+    # figures["regret"] = plot_regret(runs, N_ARMS)
 
     save_figures(figures, f"{EXP_NAME}_{RUN_NAME_ST}")
 

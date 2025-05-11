@@ -17,7 +17,7 @@ from time import time, ctime
 import random
 
 
-from experiment_code.neural.train_cifar import get_models
+
 from multiobjective_opt.mab.arms import Reward
 from multiobjective_opt.neural_net.utils.dataset_prepare import CIFAR10Handler
 from multiobjective_opt.utils.utils import flatten_dataclass
@@ -25,10 +25,11 @@ from multiobjective_opt.utils.utils import flatten_dataclass
 from multiobjective_opt.neural_net.mab_classes import EvalRez, NeuralArm, NeuralReward
 
 class ModelSampler:
-    def __init__(self, data_loader, eval_criterion, train_hyperparams):
+    def __init__(self, data_loader, eval_criterion, train_hyperparams, get_models_func):
         self.data_loader=data_loader
         self.eval_criterion=eval_criterion
         self.train_hyperparams=train_hyperparams
+        self.get_models = get_models_func
         self.train_loader, self.val_loader, self.test_loader = data_loader.load_dataset(train_hyperparams.batch_size)
 		
         counter = count(1)
@@ -41,8 +42,8 @@ class ModelSampler:
         :param n: number of instances to sample
         """
         
-        tryes = int(np.ceil(n / 5))
-        models_dicts = [get_models() for _ in range(tryes)]
+        tryes = int(np.ceil(n / 11))
+        models_dicts = [self.get_models() for _ in range(tryes)]
         
         models = []
         

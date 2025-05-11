@@ -57,7 +57,7 @@ class NeuralRunner(RunAlgEnv):
             self.agent.update(action, reward)
 
         # evaluation on test dataset
-            test_rez: EvalRez = arms[action].test()
+            test_rez: EvalRez = EvalRez(0,0,0)# arms[action].test()
             test_rez.duration = time() - start_time
 
             mlflow.log_metrics(flatten_dataclass({"pull_rew": reward}),step=i)

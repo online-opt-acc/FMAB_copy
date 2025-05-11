@@ -163,7 +163,7 @@ class CIFAR100Handler(ClassifDatasetHandlerBase):
     ):
         return 100
     
-    def _load_dataset(self, batch_size=128):
+    def _load_dataset(self, batch_size=128, valid_size = 0.1):
         # Define data preprocessing and augmentation
         transform_train = transforms.Compose([
                 transforms.RandomHorizontalFlip(),  # Randomly flip images horizontally
@@ -192,13 +192,23 @@ class CIFAR100Handler(ClassifDatasetHandlerBase):
                 transform=transform_test  # Apply test transformations
             )
 
-        # Create DataLoader objects
-        train_loader = DataLoader(
-                train_dataset,  # Training dataset
-                batch_size=batch_size,  # Batch size
-                shuffle=True,  # Shuffle data for training
-                num_workers=2  # Number of subprocesses for data loading
-            )
+
+        # partitioner
+        train_length = len(train_dataset)
+        indices=list(range(train_length))
+        split = int(np.floor(valid_size * train_length))
+        
+        np.random.shuffle(indices)
+
+        train_idx=indices[split:]
+        valid_idx=indices[:split]
+
+        train_sampler=SubsetRandomSampler(train_idx)
+        validation_sampler=SubsetRandomSampler(valid_idx)
+        # partitioner
+
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler)
+        val_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=validation_sampler)
 
         test_loader = DataLoader(
                 test_dataset,  # Test dataset
@@ -206,4 +216,4 @@ class CIFAR100Handler(ClassifDatasetHandlerBase):
                 shuffle=False,  # No need to shuffle test data
                 num_workers=2  # Number of subprocesses for data loading
             )
-        return train_loader, test_loader
+        return train_loader, val_loader, test_loader

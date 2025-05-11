@@ -24,9 +24,9 @@ LINESTYLES = [
     ("loosely dashdotdotted", (0, (3, 10, 1, 10, 1, 10))),
 ]
 
-COLORS = ["r", "g", "black", "navy", "brown", "blue", "purple", 'darkgreen',]
-MARKERS = ["<", "o", "D", ">", 's']
-MARK_EVERY_POS = [19, 18, 25, 20, 22]
+COLORS = ["r", "g", "black", "navy", "brown", "blue", "purple", 'darkgreen',"r", "g", "black", "navy", "brown", "blue", "purple", 'darkgreen',]
+MARKERS = ["<", "o", "D", ">", 's',"<", "o", "D", ">", 's',"<", "o", "D", ">", 's']
+MARK_EVERY_POS = [19, 18, 25, 20, 22, 19, 18, 25, 20, 22,19, 18, 25, 20, 22]
 MARKERSIZE = 10
 MARKER_EDGE_WIDTH = 2
 

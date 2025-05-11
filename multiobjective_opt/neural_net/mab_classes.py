@@ -119,7 +119,7 @@ class NeuralArm(BaseArm):
     def eval(self):
         return self._eval_on_dataset(self.val_loader)
 
-    def test(self,):
+    def test(self,) -> EvalRez:
         return self._eval_on_dataset(self.test_loader)  
     
     def pull(self, *args, **kwargs):

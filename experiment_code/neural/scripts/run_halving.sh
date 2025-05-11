@@ -1,15 +1,15 @@
 
 
-num_runs=10
+num_runs=5
 
-T=50
-exp_name="experiments_cycle_50"
-cuda_device="cuda:1"
+T=100
+exp_name="cifar100_100"
+cuda_device="cuda:2"
 
 mab_type="SuccessiveHalving"
 for ((i=0; i<${num_runs};i++))
 do
-    python experiment_code/neural/mab_cifar.py \
+    python experiment_code/neural/mab_cifar100.py \
             experiment.name=${exp_name} \
             experiment.subexp_name="${mab_type}-${i}"\
             experiment.mab_params.num_pulls=${T}\
