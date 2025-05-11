@@ -129,9 +129,13 @@ class SuccessiveHalving(BaseAgent):
             actions_per_arm = int(np.floor(pulls_per_iteration/n_active_arms))
 
             for arm in range(n_active_arms):
-                for _ in range(actions_per_arm):
+                for i in range(actions_per_arm):
                     last_arm = self.active_arms[arm]
-                    yield self.active_arms[arm]
+                    if i == actions_per_arm - 1:
+                        yield self.active_arms[arm], True
+                    else:
+                        # не считаем результат на тестовом наборе
+                        yield self.active_arms[arm], False
             
             self._halving()
 

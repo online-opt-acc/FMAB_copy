@@ -122,21 +122,23 @@ class NeuralArm(BaseArm):
     def test(self,) -> EvalRez:
         return self._eval_on_dataset(self.test_loader)  
     
-    def pull(self, *args, **kwargs):
+    def pull(self, eval = True, *args, **kwargs):
         self._train_epoch()
-        eval_res = self.eval()
+
+        if eval:
+            eval_res = self.eval()
         
-        # self.statistics.eval_results.append(eval_res)
-        
-        value = eval_res.accuracy \
+            value = eval_res.accuracy \
                 if self.eval_criterion == EvalCriterion.ACCURACY else \
                     eval_res.loss
 
 
-        conf_interval = 1. / ((self.statistics.num_pulls)**0.5)
+            conf_interval = 1. / ((self.statistics.num_pulls)**0.5)
 
-        rez = NeuralReward(value = value, confidence_bound=conf_interval, eval_rez = eval_res)
-        return rez
+            rez = NeuralReward(value = value, confidence_bound=conf_interval, eval_rez = eval_res)
+            return rez
+        else:
+            return NeuralReward(0,0,0)
 
 class NeuralRewardEstimator(BaseRewardEstimator):
     def __init__(self, n_actions, conf_on_min= True, c = None, coeff_scaler = 4):

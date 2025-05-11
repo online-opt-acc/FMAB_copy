@@ -50,14 +50,19 @@ class NeuralRunner(RunAlgEnv):
 
         for i in tqdm(range(max_steps), desc="Training steps"):
             action = self.agent.get_action()
+            
+            if isinstance(action, tuple):
+                reward: NeuralReward = self.environment.pull(*action)
+                if action[1] is True:
+                    self.agent.update(action, reward)
+            else:
+                reward: NeuralReward = self.environment.pull(action)
+                reward.eval_rez.duration = time() - start_time
 
-            reward: NeuralReward = self.environment.pull(action)
-            reward.eval_rez.duration = time() - start_time
-
-            self.agent.update(action, reward)
+                self.agent.update(action, reward)
 
         # evaluation on test dataset
-            test_rez: EvalRez = EvalRez(0,0,0)# arms[action].test()
+            test_rez: EvalRez = EvalRez(0, 0, 0)# arms[action].test()
             test_rez.duration = time() - start_time
 
             mlflow.log_metrics(flatten_dataclass({"pull_rew": reward}),step=i)

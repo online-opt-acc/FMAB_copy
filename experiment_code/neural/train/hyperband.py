@@ -73,12 +73,13 @@ class ModelSampler:
             ]
         return arms
 	
-    def try_params(self, n_pulls, arm: NeuralArm, steps_from_start) -> NeuralReward:
+    def try_params(self, n_pulls, arm: NeuralArm, steps_from_start, verbose = False) -> NeuralReward:
         # results = []
         for i in range((n_pulls)):
-            reward: NeuralReward = arm.pull()
-            mlflow.log_metrics(flatten_dataclass({"pull_rew": reward}), step = steps_from_start + i)
-            mlflow.log_metric('alg_name', self.model_name2hash[arm.name], step = steps_from_start + i)
+            reward: NeuralReward = arm.pull(verbose)
+            if verbose:
+                mlflow.log_metrics(flatten_dataclass({"pull_rew": reward}), step = steps_from_start + i)
+                mlflow.log_metric('alg_name', self.model_name2hash[arm.name], step = steps_from_start + i)
         
         test_rez: EvalRez = arm.test()
         mlflow.log_metrics(flatten_dataclass({"pull_rew": test_rez}), step = steps_from_start + n_pulls)
