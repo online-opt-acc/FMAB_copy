@@ -54,7 +54,7 @@ class NeuralRunner(RunAlgEnv):
             if isinstance(action, tuple):
                 reward: NeuralReward = self.environment.pull(*action)
                 if action[1] is True:
-                    self.agent.update(action, reward)
+                    self.agent.update(action[0], reward)
             else:
                 reward: NeuralReward = self.environment.pull(action)
                 reward.eval_rez.duration = time() - start_time
@@ -65,10 +65,14 @@ class NeuralRunner(RunAlgEnv):
             test_rez: EvalRez = EvalRez(0, 0, 0)# arms[action].test()
             test_rez.duration = time() - start_time
 
-            mlflow.log_metrics(flatten_dataclass({"pull_rew": reward}),step=i)
-            mlflow.log_metrics(flatten_dataclass({"test_rew": test_rez}),step=i)
-            mlflow.log_metric("pulled_arm", action, step = i)
-
+            try:
+                if isinstance(action, tuple):
+                    action = action[0]
+                mlflow.log_metric("pulled_arm", action, step = i)
+                mlflow.log_metrics(flatten_dataclass({"pull_rew": reward}),step=i)
+                mlflow.log_metrics(flatten_dataclass({"test_rew": test_rez}),step=i)
+            except Exception as e:
+                pass
             rewards_history.append(reward)
             test_history.append(test_rez)
             actions_history.append(i)

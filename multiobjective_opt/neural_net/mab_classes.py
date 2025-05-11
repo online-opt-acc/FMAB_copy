@@ -213,3 +213,5 @@ class NeuralArmEnv(ArmEnv):
             ]
         # initialize environment fully
             super().__init__(arms)
+    def pull(self, action, eval = True):
+        return self.arms[action].pull(eval )

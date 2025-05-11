@@ -1,7 +1,7 @@
 num_runs=10
 cuda_num=$1
 
-for T in 50 100 200 350 500
+for T in 50 100 500
 do
     exp_name="experiment_${T}"
     cuda_device="cuda:${cuda_num}"

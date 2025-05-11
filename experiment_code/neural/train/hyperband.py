@@ -83,6 +83,7 @@ class ModelSampler:
         
         test_rez: EvalRez = arm.test()
         mlflow.log_metrics(flatten_dataclass({"pull_rew": test_rez}), step = steps_from_start + n_pulls)
+        mlflow.log_metric('test.alg_name', self.model_name2hash[arm.name], step = steps_from_start + n_pulls)
         return {"loss" : reward.value}
 
 
