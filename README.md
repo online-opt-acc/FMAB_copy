@@ -1,5 +1,5 @@
-# multiobjective_opt
-code for online multicriteria optimization
+# FMAB
+code for FMAB paper
 
 
 
@@ -8,7 +8,7 @@ code for online multicriteria optimization
 poetry install
 ```
 
-# repository structure
+# repository structure and experiment run
 ```
 .
 ├── conf
